@@ -1,0 +1,129 @@
+---
+title: "Regression Models Project - MPG vs Transmission Type"
+author: "Chris Dolan"
+date: "December 10, 2015"
+output: word_document
+---
+### Executive Summary
+
+This project investigates a dataset from Motor Trend, and works to find a link between gas mileage and transmission type across several types of cars. The information as provided in the Coursera project document is as follows:
+
+You work for Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
+
+- Is an automatic or manual transmission better for MPG?
+- Quantify the MPG difference between automatic and manual transmissions
+
+Some exploratory analysis was performed to familiarize myself with the data, followed by linear regressio and analysis to help answer these two objectives.
+
+### Data Processing
+
+We start by loading the data set. Note the output of these basic functions has been supressed to shorten the overall length of the report.
+
+```{r, results="hide"}
+## Load the data
+data("mtcars")
+
+## Take a look at the structure of the data we are using
+str(mtcars)
+```
+
+```{r, results="hide" }
+### take a look at the summary of the data
+summary(mtcars)
+
+## Convert necessary columns to factors
+mtcars$am   <- factor(mtcars$am,labels=c("Auto","Manual"))
+mtcars$cyl  <- factor(mtcars$cyl)
+```
+
+### Exploratory Analysis
+
+I started by making a pairs plot of the data. This plot was very messy, so I decided to trim down the data set to make it easier to read once plotted, I did this by simply looking at some of these columns and trying to decide which may impact gas mileage. Since this is just an exploratory step I was just looking for anything interesting that may jump out
+
+The pairs plot, along with a box plot of the transmission type vs.mpg can be found in the appendix, along with the R code used to create the plots.
+
+### Regression Analysis
+
+The analysis for this project consisted of developing several linear regression models and investigated the residuals and other values to select a best performing model.
+
+#### Model Building
+
+The first model that was developed involves using only the transmision type as a predictor for mpg
+
+```{r, results="hide"}
+## Create regression models using just am
+ammodel <- lm(mpg ~ am, mtcars)
+```
+
+Next a model was created using all of the variables as predictors of mpg
+```{r, results="hide"}
+allmodel <- lm(mpg~., mtcars)
+```
+
+Finally, the step function in R was used to perform stepwise model selection in both directions. This algorithim chooses to add or remove predictor variables based on their performance in the model. The outcome of this function is the best performing linear regression model.
+
+```{r, results="hide"}
+## Create regression models with the most applicable variables
+trimmodel <- step(allmodel, direction = "both")
+```
+
+```{r, results="hide"}
+summary(trimmodel)
+```
+
+For the sake of keeping the report concise, the output of the summary finction is hidden. The R-squared for his model is nearly .85, this translates to nearly 85% of the variaton in the data can be descrbed by this model. 
+
+#### Model Selection
+
+Next, an anlysis of variance was performed comparing the trimmed down model to the model containing only the transmission type. The results are below, notice that the P-value is below the .05 mark and shows that the data is statisticaly significant. Because of this we reject the null hypothesis and accept the alternative - In this case we are saying that the additional variables used as predictors DO add value to the model, when compared to just using transmission type.
+
+As an additional check, I looked in to the 95% confidence interval of the trimmed down model, focusing on the transmission type.
+
+```{r}
+confint(trimmodel, "amManual", level=0.95)
+```
+
+Here you can see, that the confidence interval does not contain 0, again showing that there is a statistically significant impact on mpg. These results led to the selection of the trimmed down model:
+
+mpg ~ wt + qsec + am
+
+### Diagnostics and Residual Plots
+
+The applicable plots can be found in the Appendix, but this is what we found during the additional research in to the model. These plots are easily created in R with a single function call.
+
+- Independence can be assumed, and shown through the first plot. There is no pattern seen in the residuals
+- Points in the Q-Q Plot follow closely with the diagnol line
+- Constant Variance can be assumed, and is highlighted in the randomness of the data points in the third plot.
+- Looking a the 4th plot, it is easy to see that all points fall below the .5 lines, showing there are no outliers causing leverage issues.
+
+### Conclusion
+
+This analysis shows:
+
+- Manaul tranmission tends to offer better gas mileage. Looking at the trimmed down model, manual cars have nearly 3 miles per gallon better than automatic.
+
+- Increasing weight lowers mpg, losing 2.5 mpg per 1000 pounds added
+
+
+
+#### Appendix
+
+#### Exploratory Analysis Plots
+
+Box plot showing mpg for the two transmisson types, pairs plot for 6 of the variables in the data deemed most relevant at first glance.
+
+```{r}
+plot(as.factor(mtcars$am),mtcars$mpg, col = (c("green","red")), 
+        ylab = "mpg (Miles per Gallon)", xlab = "Transmission Type")
+mtcars_expl <- mtcars[,c(1,2,4,6,7,9)]
+pairs(mtcars_expl, panel=panel.smooth, main="Pairs Plot of Motor Trend Variables")
+```
+
+The pairs plots give insight in to some of the trends noted in the report above, quickly looking at the wt vs mpg plot, the trenline shows some interesting information.
+
+Diagnostic and Residual plots, discussion and explanantions for these plot can be found in the report above.
+
+```{r}
+par(mfrow=c(2, 2))
+plot(trimmodel)
+```
